@@ -1,4 +1,4 @@
-import { LocalValidator, GetRawTransactionsAsync } from '../lib/localvalidator';
+import { LocalValidator, GetRawTransactionsAsync } from '../src/localvalidator';
 import { SlpValidityUnitTest, SlpTestTxn } from './global';
 
 import * as assert from 'assert';
@@ -13,18 +13,18 @@ describe('Slp', function() {
         txUnitTestData.forEach(test => {
             it(test.description, async () => {
 
-                // Create method for serving up the unit test transactions 
+                // Create method for serving up the unit test transactions
                 let getRawUnitTestTransactions: GetRawTransactionsAsync = async (txids: string[]) => {
                     let allTxns: SlpTestTxn[] = test.when.concat(test.should);
                     let txn = allTxns.find(i => {
                         let hash = (<Buffer>bitbox.Crypto.sha256(bitbox.Crypto.sha256(Buffer.from(i.tx, 'hex'))).reverse()).toString('hex');
-                        return hash === txids[0] 
+                        return hash === txids[0]
                     });
                     if(txn)
                         return [txn.tx];
                     throw Error("Transaction data for the provided txid not found (txid: " + txids[0] + ")")
                 }
-    
+
                 // Create instance of Local Validator
                 var slpValidator = new LocalValidator(bitbox, getRawUnitTestTransactions);
 

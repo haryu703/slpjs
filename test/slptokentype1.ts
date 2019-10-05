@@ -1,5 +1,5 @@
 import { BigNumber } from 'bignumber.js'
-import { SlpTokenType1 as SlpTokenType1 } from '../lib/slptokentype1'
+import { SlpTokenType1 as SlpTokenType1 } from '../src/slptokentype1'
 
 import * as assert from 'assert'
 
@@ -253,7 +253,7 @@ describe('SlpTokenType1', function() {
         })
         it('Throws with 0 outputs', () => {
             let tokenIdHex = "8888888888888888888888888888888888888888888888888888888888888888"
-            let outputQtyArray: never[] = []
+            let outputQtyArray: BigNumber[] = []
             assert.throws(function() {SlpTokenType1.buildSendOpReturn(tokenIdHex, outputQtyArray)}, Error("Cannot have less than 1 SLP token output."))
         })
         it('Throws with null outputs', () => {

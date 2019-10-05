@@ -1,7 +1,7 @@
-import { Utils } from '../lib/utils';
+import { Utils } from '../src/utils';
 import * as assert from 'assert';
 import "mocha";
-import { SlpPaymentRequest } from '..';
+import { SlpPaymentRequest } from '../src';
 
 describe('Utils', function() {
     describe('Address Conversion and Network Detection', function() {
@@ -61,8 +61,8 @@ describe('Utils', function() {
             let r = Utils.parseSlpUri(uri);
             let r_expected: SlpPaymentRequest = {
                 address: "simpleledger:qr5agtachyxvrwxu76vzszan5pnvuzy8duhv4lxrsk",
-                amountBch: 1.01, 
-                amountToken: 10.123, 
+                amountBch: 1.01,
+                amountToken: 10.123,
                 tokenId: "fa6c74c52450fc164e17402a46645ce494a8a8e93b1383fa27460086931ef59f"
             }
             assert.deepEqual(r, r_expected)
@@ -72,7 +72,7 @@ describe('Utils', function() {
             let r = Utils.parseSlpUri(uri);
             let r_expected: SlpPaymentRequest = {
                 address: "simpleledger:qr5agtachyxvrwxu76vzszan5pnvuzy8duhv4lxrsk",
-                amountToken: 10.123, 
+                amountToken: 10.123,
                 tokenId: "fa6c74c52450fc164e17402a46645ce494a8a8e93b1383fa27460086931ef59f"
             }
             assert.deepEqual(r, r_expected)

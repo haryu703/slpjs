@@ -1,4 +1,4 @@
-import { Slp } from '../lib/slp';
+import { Slp } from '../src/slp';
 import * as assert from 'assert';
 import { BITBOX } from 'bitbox-sdk';
 
@@ -27,10 +27,10 @@ describe('Slp', function() {
 
     // })
     // describe('buildMintTransaction()', function() {
-        
+
     // })
     // describe('buildSendTransaction()', function() {
-        
+
     // })
 
     // let genesisTxid;
@@ -50,12 +50,12 @@ describe('Slp', function() {
     //         console.log(balances);
     //         let decimals = 9;
     //         let initialQty = (new BigNumber(1000000)).times(10**decimals);
-            
-    //         let genesisOpReturn = slp.buildGenesisOpReturn({ 
+
+    //         let genesisOpReturn = slp.buildGenesisOpReturn({
     //             ticker: null,
     //             name: null,
     //             documentUri: null,
-    //             hash: null, 
+    //             hash: null,
     //             decimals: decimals,
     //             batonVout: 2,
     //             initialQuantity: initialQty,
@@ -64,15 +64,15 @@ describe('Slp', function() {
     //         balances.nonSlpUtxos.forEach(utxo => utxo.wif = fundingWif)
 
     //         let genesisTxHex = slp.buildRawGenesisTx({
-    //             slpGenesisOpReturn: genesisOpReturn, 
+    //             slpGenesisOpReturn: genesisOpReturn,
     //             mintReceiverAddress: tokenReceiverAddress,
     //             batonReceiverAddress: batonReceiverAddress,
-    //             bchChangeReceiverAddress: bchChangeReceiverAddress, 
+    //             bchChangeReceiverAddress: bchChangeReceiverAddress,
     //             input_utxos: balances.nonSlpUtxos
     //         });
 
     //         genesisTxid = await BITBOX.RawTransactions.sendRawTransaction(genesisTxHex);
-            
+
     //         let re = /^([A-Fa-f0-9]{2}){32,32}$/;
     //         console.log(genesisTxHex);
     //         assert.equal(true, re.test(genesisTxid));
