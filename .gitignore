@@ -4,9 +4,8 @@
 /node_modules
 
 # ignore built js files
-*.js
-index.js
-*.js.map
+# *.js
+# *.js.map
 
 # testing
 /coverage
