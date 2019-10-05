@@ -1,4 +1,4 @@
-import { SlpTransactionDetails, SlpTransactionType } from '../index';
+import { SlpTransactionDetails, SlpTransactionType } from './index';
 
 import axios, { AxiosRequestConfig } from 'axios';
 import BigNumber from 'bignumber.js';
@@ -19,7 +19,7 @@ export class BitdbNetwork {
             },
             "r": { "f": "[ .[] | { token_type: .out[0].h2, timestamp: (if .blk? then (.blk.t | strftime(\"%Y-%m-%d %H:%M\")) else null end), symbol: .out[0].s4, name: .out[0].s5, document: .out[0].s6, document_sha256: .out[0].h7, decimals: .out[0].h8, baton: .out[0].h9, quantity: .out[0].h10, URI: \"https://tokengraph.network/token/\\(.tx.h)\" } ]" }
         }
-        
+
         const data = Buffer.from(JSON.stringify(query)).toString('base64');
 
         let config: AxiosRequestConfig = {
@@ -42,7 +42,7 @@ export class BitdbNetwork {
 
         let tokenDetails: SlpTransactionDetails = {
             transactionType: SlpTransactionType.GENESIS,
-            tokenIdHex: tokenId, 
+            tokenIdHex: tokenId,
             versionType: parseInt(list[0].token_type, 16),
             timestamp: list[0].timestamp,
             symbol: list[0].symbol,

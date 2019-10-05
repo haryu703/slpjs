@@ -1,4 +1,4 @@
-import { Utils, SlpAddressUtxoResult, Slp, SlpUtxoJudgement } from "..";
+import { Utils, SlpAddressUtxoResult, Slp, SlpUtxoJudgement } from ".";
 import BigNumber from "bignumber.js";
 import * as Bitcore from "bitcore-lib-cash";
 import { Primatives } from "./primatives";
@@ -23,7 +23,7 @@ export interface ScriptSigP2PKH {
 export interface ScriptSigP2SH {
     index: number;
     lockingScriptBuf: Buffer;  //   <-- aka "redeem" script
-    unlockingScriptBufArray: (number|Buffer)[]; 
+    unlockingScriptBufArray: (number|Buffer)[];
 }
 
 export interface MultisigRedeemData {
@@ -41,8 +41,8 @@ export class TransactionHelpers {
     }
 
     // Create raw transaction hex to: Send SLP tokens to one or more token receivers, include optional BCH only outputs
-    simpleTokenSend(tokenId: string, sendAmounts: BigNumber|BigNumber[], inputUtxos: SlpAddressUtxoResult[], tokenReceiverAddresses: string|string[], changeReceiverAddress: string, requiredNonTokenOutputs: { satoshis: number, receiverAddress: string }[] = [], extraFee = 0): string {  
-        
+    simpleTokenSend(tokenId: string, sendAmounts: BigNumber|BigNumber[], inputUtxos: SlpAddressUtxoResult[], tokenReceiverAddresses: string|string[], changeReceiverAddress: string, requiredNonTokenOutputs: { satoshis: number, receiverAddress: string }[] = [], extraFee = 0): string {
+
         // normalize token receivers and amounts to array types
         if(typeof tokenReceiverAddresses === "string")
             tokenReceiverAddresses = [ tokenReceiverAddresses ];
@@ -55,20 +55,20 @@ export class TransactionHelpers {
         }
 
         // 1) Set the token send amounts, we'll send 100 tokens to a new receiver and send token change back to the sender
-        let totalTokenInputAmount: BigNumber = 
+        let totalTokenInputAmount: BigNumber =
             inputUtxos
             .filter(txo => {
                 return Slp.preSendSlpJudgementCheck(txo, tokenId);
             })
-            .reduce((tot: BigNumber, txo: SlpAddressUtxoResult) => { 
+            .reduce((tot: BigNumber, txo: SlpAddressUtxoResult) => {
                 return tot.plus(txo.slpUtxoJudgementAmount)
             }, new BigNumber(0))
 
         // 2) Compute the token Change amount.
         let tokenChangeAmount: BigNumber = totalTokenInputAmount.minus((sendAmounts as BigNumber[]).reduce((t, v) => t = t.plus(v), new BigNumber(0)));
-        
+
         // Get token_type
-        let token_type: number = 
+        let token_type: number =
             inputUtxos.filter(i => i.slpUtxoJudgement === SlpUtxoJudgement.SLP_TOKEN &&
                                     i.slpTransactionDetails.tokenIdHex === tokenId)[0].slpTransactionDetails.versionType;
 
@@ -142,12 +142,12 @@ export class TransactionHelpers {
 
     // Create raw transaction hex to: Create a token Genesis issuance
     simpleTokenGenesis(tokenName: string, tokenTicker: string, tokenAmount: BigNumber, documentUri: string|null, documentHash: Buffer|null, decimals: number, tokenReceiverAddress: string, batonReceiverAddress: string|null, bchChangeReceiverAddress: string, inputUtxos: SlpAddressUtxoResult[]): string {
-        
-        let genesisOpReturn = Slp.buildGenesisOpReturn({ 
+
+        let genesisOpReturn = Slp.buildGenesisOpReturn({
             ticker: tokenTicker,
             name: tokenName,
             documentUri: documentUri,
-            hash: documentHash, 
+            hash: documentHash,
             decimals: decimals,
             batonVout: batonReceiverAddress ? 2 : null,
             initialQuantity: tokenAmount,
@@ -155,10 +155,10 @@ export class TransactionHelpers {
 
         // 4) Create/sign the raw transaction hex for Genesis
         let genesisTxHex = this.slp.buildRawGenesisTx({
-            slpGenesisOpReturn: genesisOpReturn, 
+            slpGenesisOpReturn: genesisOpReturn,
             mintReceiverAddress: tokenReceiverAddress,
             batonReceiverAddress: batonReceiverAddress,
-            bchChangeReceiverAddress: bchChangeReceiverAddress, 
+            bchChangeReceiverAddress: bchChangeReceiverAddress,
             input_utxos: Utils.mapToUtxoArray(inputUtxos)
         });
 
@@ -167,12 +167,12 @@ export class TransactionHelpers {
     }
 
     simpleNFT1ParentGenesis(tokenName: string, tokenTicker: string, tokenAmount: BigNumber, documentUri: string|null, documentHash: Buffer|null, tokenReceiverAddress: string, batonReceiverAddress: string|null, bchChangeReceiverAddress: string, inputUtxos: SlpAddressUtxoResult[], decimals=0): string {
-        
-        let genesisOpReturn = Slp.buildGenesisOpReturn({ 
+
+        let genesisOpReturn = Slp.buildGenesisOpReturn({
             ticker: tokenTicker,
             name: tokenName,
             documentUri: documentUri,
-            hash: documentHash, 
+            hash: documentHash,
             decimals: decimals,
             batonVout: batonReceiverAddress ? 2 : null,
             initialQuantity: tokenAmount,
@@ -180,10 +180,10 @@ export class TransactionHelpers {
 
         // Create/sign the raw transaction hex for Genesis
         let genesisTxHex = this.slp.buildRawGenesisTx({
-            slpGenesisOpReturn: genesisOpReturn, 
+            slpGenesisOpReturn: genesisOpReturn,
             mintReceiverAddress: tokenReceiverAddress,
             batonReceiverAddress: batonReceiverAddress,
-            bchChangeReceiverAddress: bchChangeReceiverAddress, 
+            bchChangeReceiverAddress: bchChangeReceiverAddress,
             input_utxos: Utils.mapToUtxoArray(inputUtxos)
         });
 
@@ -192,11 +192,11 @@ export class TransactionHelpers {
     }
 
     simpleNFT1ChildGenesis(nft1GroupId: string, tokenName: string, tokenTicker: string, documentUri: string|null, documentHash: Buffer|null, tokenReceiverAddress: string, bchChangeReceiverAddress: string, inputUtxos: SlpAddressUtxoResult[], allowBurnAnyAmount = false) {
-        let genesisOpReturn = Slp.buildGenesisOpReturn({ 
+        let genesisOpReturn = Slp.buildGenesisOpReturn({
             ticker: tokenTicker,
             name: tokenName,
             documentUri: documentUri,
-            hash: documentHash, 
+            hash: documentHash,
             decimals: 0,
             batonVout: null,
             initialQuantity: new BigNumber(1),
@@ -213,11 +213,11 @@ export class TransactionHelpers {
 
         // Create/sign the raw transaction hex for Genesis
         let genesisTxHex = this.slp.buildRawGenesisTx({
-            slpGenesisOpReturn: genesisOpReturn, 
+            slpGenesisOpReturn: genesisOpReturn,
             mintReceiverAddress: tokenReceiverAddress,
             batonReceiverAddress: null,
-            bchChangeReceiverAddress: bchChangeReceiverAddress, 
-            input_utxos: Utils.mapToUtxoArray(inputUtxos), 
+            bchChangeReceiverAddress: bchChangeReceiverAddress,
+            input_utxos: Utils.mapToUtxoArray(inputUtxos),
             allowed_token_burning: [nft1GroupId]
         });
 
@@ -226,7 +226,7 @@ export class TransactionHelpers {
     }
 
     // Create raw transaction hex to: Mint new tokens or move the minting baton
-    simpleTokenMint(tokenId: string, mintAmount: BigNumber, inputUtxos: SlpAddressUtxoResult[], tokenReceiverAddress: string, batonReceiverAddress: string, changeReceiverAddress: string): string {  
+    simpleTokenMint(tokenId: string, mintAmount: BigNumber, inputUtxos: SlpAddressUtxoResult[], tokenReceiverAddress: string, batonReceiverAddress: string, changeReceiverAddress: string): string {
         // // convert address to cashAddr from SLP format.
         // let fundingAddress_cashfmt = bchaddr.toCashAddress(fundingAddress);
 
@@ -247,7 +247,7 @@ export class TransactionHelpers {
             batonReceiverAddress: batonReceiverAddress,
             bchChangeReceiverAddress: changeReceiverAddress
         });
-        
+
         //console.log(txHex);
 
         // Return raw hex for this transaction
@@ -255,21 +255,21 @@ export class TransactionHelpers {
     }
 
     // Create raw transaction hex to: Burn a precise quantity of SLP tokens with remaining tokens (change) sent to a single output address
-    simpleTokenBurn(tokenId: string, burnAmount: BigNumber, inputUtxos: SlpAddressUtxoResult[], changeReceiverAddress: string): string {  
-    
+    simpleTokenBurn(tokenId: string, burnAmount: BigNumber, inputUtxos: SlpAddressUtxoResult[], changeReceiverAddress: string): string {
+
         // Set the token send amounts
-        let totalTokenInputAmount: BigNumber = 
+        let totalTokenInputAmount: BigNumber =
             inputUtxos
             .filter(txo => {
                 return Slp.preSendSlpJudgementCheck(txo, tokenId);
             })
-            .reduce((tot: BigNumber, txo: SlpAddressUtxoResult) => { 
+            .reduce((tot: BigNumber, txo: SlpAddressUtxoResult) => {
                 return tot.plus(txo.slpUtxoJudgementAmount)
             }, new BigNumber(0))
 
         // Compute the token Change amount.
         let tokenChangeAmount: BigNumber = totalTokenInputAmount.minus(burnAmount);
-        
+
         let txHex;
         if(tokenChangeAmount.isGreaterThan(new BigNumber(0))){
             // Create the Send OP_RETURN message
@@ -302,7 +302,7 @@ export class TransactionHelpers {
     }
 
     get_transaction_sig_p2pkh(txHex: string, wif: string, input_index: number, input_satoshis: number, sigHashType=0x41): InputSigData {
-        
+
         // deserialize the unsigned transaction
 
         let txn = new Bitcore.Transaction(txHex);
@@ -317,8 +317,8 @@ export class TransactionHelpers {
         // again, this is for bitcore-lib input sig generation
 
         txn.inputs[input_index].output = new Bitcore.Transaction.Output({
-            satoshis: input_satoshis, 
-            script: Bitcore.Script.fromAddress(Utils.toCashAddress(ecpair.getAddress())) 
+            satoshis: input_satoshis,
+            script: Bitcore.Script.fromAddress(this.slp.BITBOX.ECPair.toCashAddress(ecpair))
         });
 
         // Update input to be non-abstract type so we can get the p2pkh sign method
@@ -334,19 +334,19 @@ export class TransactionHelpers {
         // add have to add the sighash type manually.. :(
         // NOTE: signature is in DER format and is specific to ecdsa & sigHash 0x41
 
-        let sigBuf = Buffer.concat([ sig[0].signature.toDER(), Buffer.alloc(1, sigHashType) ]);  
+        let sigBuf = Buffer.concat([ sig[0].signature.toDER(), Buffer.alloc(1, sigHashType) ]);
 
         // we can return a object conforming to InputSigData<P2pkhSig> interface
 
         return {
-            index: input_index, 
-            pubKeyBuf: ecpair.getPublicKeyBuffer(), 
-            signatureBuf: sigBuf  
+            index: input_index,
+            pubKeyBuf: ecpair.publicKey,
+            signatureBuf: sigBuf
         }
     }
 
     get_transaction_sig_p2sh(txHex: string, wif: string, input_index: number, input_satoshis: number, redeemScript: Buffer, sigHashType=0x41): InputSigData {
-        
+
         // deserialize the unsigned transaction
 
         let txn = new Bitcore.Transaction(txHex);
@@ -361,7 +361,7 @@ export class TransactionHelpers {
         // again, this is for bitcore-lib input sig generation
 
         txn.inputs[input_index].output = new Bitcore.Transaction.Output({
-            satoshis: input_satoshis, 
+            satoshis: input_satoshis,
             script: redeemScript
         });
 
@@ -370,18 +370,18 @@ export class TransactionHelpers {
 
         let privateKey = new Bitcore.PrivateKey(wif);
         var sig = Bitcore.Transaction.Sighash.sign(txn, privateKey, sigHashType, input_index, redeemScript, Bitcore.crypto.BN.fromNumber(input_satoshis));
-        
+
         // add have to add the sighash type manually.. :(
         // NOTE: signature is in DER format and is specific to ecdsa & sigHash 0x41
 
-        let sigBuf = Buffer.concat([ sig.toDER(), Buffer.alloc(1, sigHashType) ]);  
+        let sigBuf = Buffer.concat([ sig.toDER(), Buffer.alloc(1, sigHashType) ]);
 
         // we can return a object conforming to InputSigData<P2pkhSig> interface
 
         return {
-            index: input_index, 
-            pubKeyBuf: ecpair.getPublicKeyBuffer(), 
-            signatureBuf: sigBuf  
+            index: input_index,
+            pubKeyBuf: ecpair.publicKey,
+            signatureBuf: sigBuf
         }
     }
 
@@ -412,10 +412,10 @@ export class TransactionHelpers {
         // compute this multisig address
 
         let addr = this.slp.BITBOX.Address.fromOutputScript(
-                        this.slp.BITBOX.Script.scriptHash.output.encode(
+                        this.slp.BITBOX.Script.encodeP2SHOutput(
                             this.slp.BITBOX.Crypto.hash160(
                                 redeemScript)))
-    
+
         return {
             m: m,
             pubKeys: pubKeys as Buffer[],
@@ -444,11 +444,11 @@ export class TransactionHelpers {
         if(sigs.length < redeemData.m)
             throw Error("Not enough signatures.")
 
-        // check not too many signataures 
+        // check not too many signataures
 
         if(sigs.length > redeemData.pubKeys.length)
             throw Error("Too many pubKeys provided.")
-        
+
         // check all provided signatures belong to the given possible pubkeys
 
         let pubKeysHex: string[] = redeemData.pubKeys.map(k => k.toString('hex'))
@@ -472,7 +472,7 @@ export class TransactionHelpers {
 
         return {
             index: input_index,
-            lockingScriptBuf: redeemData.lockingScript, 
+            lockingScriptBuf: redeemData.lockingScript,
             unlockingScriptBufArray: unlockingScript
         }
     }
@@ -487,13 +487,13 @@ export class TransactionHelpers {
 
             // for p2pkh encode scriptSig
 
-            if((s as ScriptSigP2PKH).pubKeyBuf) {  
+            if((s as ScriptSigP2PKH).pubKeyBuf) {
                 let sigBuf = (s as ScriptSigP2PKH).signatureBuf;
                 let pubKeyBuf = (s as ScriptSigP2PKH).pubKeyBuf;
                 bip62Encoded = this.slp.BITBOX.Script.encode([ sigBuf, pubKeyBuf ]);
             }
 
-            // for p2sh encode scriptSig 
+            // for p2sh encode scriptSig
 
             else if((s as ScriptSigP2SH).lockingScriptBuf) {
                 let unlockingBufArray = (s as ScriptSigP2SH).unlockingScriptBufArray;

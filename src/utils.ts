@@ -1,4 +1,4 @@
-import { SlpAddressUtxoResult, utxo, SlpPaymentRequest } from '../index';
+import { SlpAddressUtxoResult, utxo, SlpPaymentRequest } from './index';
 
 import { AddressUtxoResult } from 'bitcoin-com-rest';
 import * as Bchaddr from 'bchaddrjs-slp';
@@ -76,9 +76,9 @@ export class Utils {
     }
 
     static mapToUtxoArray(utxos: SlpAddressUtxoResult[]) {
-        return utxos.map(txo => 
+        return utxos.map(txo =>
         {
-            return <utxo> { 
+            return <utxo> {
                 satoshis: new BigNumber(txo.satoshis),
                 wif: txo.wif,
                 txid: txo.txid,
@@ -99,7 +99,7 @@ export class Utils {
             return length
         else if (length < 256)
             return [0x4c, length]
-        
+
         throw Error("Pushdata too large")
     }
 

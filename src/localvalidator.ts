@@ -1,11 +1,11 @@
-import { SlpTransactionType, SlpTransactionDetails, logger } from '../index';
+import { SlpTransactionType, SlpTransactionDetails, logger } from './index';
 import { SlpValidator, Slp } from './slp';
 
 import { BITBOX } from 'bitbox-sdk';
 import * as Bitcore from 'bitcore-lib-cash';
 import BigNumber from 'bignumber.js';
 
-export interface Validation { validity: boolean|null; parents: Parent[], details: SlpTransactionDetails|null, invalidReason: string|null, waiting: boolean } 
+export interface Validation { validity: boolean|null; parents: Parent[], details: SlpTransactionDetails|null, invalidReason: string|null, waiting: boolean }
 export type GetRawTransactionsAsync = (txid: string[]) => Promise<string[]>;
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
@@ -47,7 +47,7 @@ export class LocalValidator implements SlpValidator {
         if(!this.cachedRawTransactions[id])
             this.cachedRawTransactions[id] = hex;
     }
-    
+
     async waitForCurrentValidationProcessing(txid: string) {
         let cached: Validation = this.cachedValidations[txid];
 
@@ -96,26 +96,26 @@ export class LocalValidator implements SlpValidator {
 
     //
     // This method uses recursion to do a Depth-First-Search with the node result being
-    // computed in Postorder Traversal (left/right/root) order.  A validation cache 
+    // computed in Postorder Traversal (left/right/root) order.  A validation cache
     // is used to keep track of the results for nodes that have already been evaluated.
-    // 
-    // Each call to this method evaluates node validity with respect to 
+    //
+    // Each call to this method evaluates node validity with respect to
     // its parent node(s), so it walks backwards until the
     // validation cache provides a result or the GENESIS node is evaluated.
-    // Root nodes await the validation result of their upstream parent.  
-    // 
-    // In the case of NFT1 the search continues to the group/parent NFT DAG after the Genesis 
+    // Root nodes await the validation result of their upstream parent.
+    //
+    // In the case of NFT1 the search continues to the group/parent NFT DAG after the Genesis
     // of the NFT child is discovered.
     //
     async _isValidSlpTxid(txid: string, tokenIdFilter?: string, tokenTypeFilter?: number): Promise<boolean> {
         // Check to see if this txn has been processed by looking at shared cache, if doesn't exist then download txn.
         if(!this.cachedValidations[txid]) {
-            this.cachedValidations[txid] = { 
-                validity: null, 
-                parents: [], 
-                details: null, 
-                invalidReason: null, 
-                waiting: false 
+            this.cachedValidations[txid] = {
+                validity: null,
+                parents: [],
+                details: null,
+                invalidReason: null,
+                waiting: false
             }
             await this.retrieveRawTransaction(txid);
         }
@@ -128,7 +128,7 @@ export class LocalValidator implements SlpValidator {
         // Handle the case where neither branch of the previous if/else statement was
         // executed and the raw transaction has never been downloaded.
         //
-        // Also handle case where a 2nd request of same txid comes in 
+        // Also handle case where a 2nd request of same txid comes in
         // during the download of a previous request.
         //
         if(!this.cachedRawTransactions[txid] || this.cachedRawTransactions[txid] === "waiting") {
@@ -187,8 +187,8 @@ export class LocalValidator implements SlpValidator {
         // Check DAG validity
         if(slpmsg.transactionType === SlpTransactionType.GENESIS) {
             // Check for NFT1 child (type 0x41)
-            if(slpmsg.versionType === 0x41) { 
-                // An NFT1 parent should be provided at input index 0, 
+            if(slpmsg.versionType === 0x41) {
+                // An NFT1 parent should be provided at input index 0,
                 // so we check this first before checking the whole parent DAG
                 let input_txid = txn.inputs[0].prevTxId.toString('hex');
                 let input_txhex = await this.retrieveRawTransaction(input_txid);
@@ -205,7 +205,7 @@ export class LocalValidator implements SlpValidator {
                 }
                 // Check that the there is a burned output >0 in the parent txn SLP message
                 if(input_slpmsg.transactionType === SlpTransactionType.SEND &&
-                    (!input_slpmsg.sendOutputs![1].isGreaterThan(0))) 
+                    (!input_slpmsg.sendOutputs![1].isGreaterThan(0)))
                 {
                     this.cachedValidations[txid].validity = false;
                     this.cachedValidations[txid].waiting = false;
@@ -213,7 +213,7 @@ export class LocalValidator implements SlpValidator {
                     return this.cachedValidations[txid].validity!;
                 } else if((input_slpmsg.transactionType === SlpTransactionType.GENESIS ||
                             input_slpmsg.transactionType === SlpTransactionType.MINT) &&
-                            !input_slpmsg.genesisOrMintQuantity!.isGreaterThan(0)) 
+                            !input_slpmsg.genesisOrMintQuantity!.isGreaterThan(0))
                 {
                     this.cachedValidations[txid].validity = false;
                     this.cachedValidations[txid].waiting = false;
@@ -228,7 +228,7 @@ export class LocalValidator implements SlpValidator {
                     this.cachedValidations[txid].invalidReason = "NFT1 child GENESIS does not have valid parent DAG."
                 }
                 return this.cachedValidations[txid].validity!;
-            } 
+            }
             // All other supported token types (includes 0x01 and 0x81)
             // No need to check type here since op_return parser throws on other types.
             else {
@@ -249,12 +249,12 @@ export class LocalValidator implements SlpValidator {
                     if(input_slpmsg.tokenIdHex === slpmsg.tokenIdHex) {
                         if(input_slpmsg.transactionType === SlpTransactionType.GENESIS || input_slpmsg.transactionType === SlpTransactionType.MINT) {
                             if(txn.inputs[i].outputIndex === input_slpmsg.batonVout) {
-                                this.cachedValidations[txid].parents.push({ 
-                                    txid: txn.inputs[i].prevTxId.toString('hex'), 
-                                    vout: txn.inputs[i].outputIndex, 
+                                this.cachedValidations[txid].parents.push({
+                                    txid: txn.inputs[i].prevTxId.toString('hex'),
+                                    vout: txn.inputs[i].outputIndex,
                                     versionType: input_slpmsg.versionType,
                                     valid: null,
-                                    inputQty: null 
+                                    inputQty: null
                                 })
                             }
                         }
@@ -283,24 +283,24 @@ export class LocalValidator implements SlpValidator {
                         if(input_slpmsg.transactionType === SlpTransactionType.SEND) {
                             if(txn.inputs[i].outputIndex <= input_slpmsg.sendOutputs!.length-1) {
                                 tokenInQty = tokenInQty.plus(input_slpmsg.sendOutputs![txn.inputs[i].outputIndex])
-                                this.cachedValidations[txid].parents.push({ 
-                                    txid: txn.inputs[i].prevTxId.toString('hex'), 
-                                    vout: txn.inputs[i].outputIndex, 
-                                    versionType: input_slpmsg.versionType, 
-                                    valid: null, 
-                                    inputQty: input_slpmsg.sendOutputs![txn.inputs[i].outputIndex] 
+                                this.cachedValidations[txid].parents.push({
+                                    txid: txn.inputs[i].prevTxId.toString('hex'),
+                                    vout: txn.inputs[i].outputIndex,
+                                    versionType: input_slpmsg.versionType,
+                                    valid: null,
+                                    inputQty: input_slpmsg.sendOutputs![txn.inputs[i].outputIndex]
                                 })
                             }
                         }
                         else if(input_slpmsg.transactionType === SlpTransactionType.GENESIS || input_slpmsg.transactionType === SlpTransactionType.MINT) {
                             if(txn.inputs[i].outputIndex === 1) {
                                 tokenInQty = tokenInQty.plus(input_slpmsg.genesisOrMintQuantity!)
-                                this.cachedValidations[txid].parents.push({ 
-                                    txid: txn.inputs[i].prevTxId.toString('hex'), 
-                                    vout: txn.inputs[i].outputIndex, 
-                                    versionType: input_slpmsg.versionType, 
-                                    valid: null, 
-                                    inputQty: input_slpmsg.genesisOrMintQuantity 
+                                this.cachedValidations[txid].parents.push({
+                                    txid: txn.inputs[i].prevTxId.toString('hex'),
+                                    vout: txn.inputs[i].outputIndex,
+                                    versionType: input_slpmsg.versionType,
+                                    valid: null,
+                                    inputQty: input_slpmsg.genesisOrMintQuantity
                                 })
                             }
                         }
@@ -321,7 +321,7 @@ export class LocalValidator implements SlpValidator {
         // we don't need to check proper token id since we only added parents with same ID in above steps.
         let parentTxids = [...new Set(this.cachedValidations[txid].parents.map(p => p.txid))];
         for(let i = 0; i < parentTxids.length; i++) {
-            let valid = await this.isValidSlpTxid(parentTxids[i]) 
+            let valid = await this.isValidSlpTxid(parentTxids[i])
             this.cachedValidations[txid].parents.filter(p => p.txid === parentTxids[i]).map(p => p.valid = valid);
             if(this.cachedValidations[txid].details!.transactionType === SlpTransactionType.MINT && !valid) {
                 this.cachedValidations[txid].validity = false;

@@ -1,4 +1,4 @@
-import { SlpAddressUtxoResult, SlpTransactionDetails, SlpBalancesResult, logger, SlpTransactionType, SlpVersionType, Primatives } from '../index';
+import { SlpAddressUtxoResult, SlpTransactionDetails, SlpBalancesResult, logger, SlpTransactionType, SlpVersionType, Primatives } from './index';
 import { Slp, SlpProxyValidator, SlpValidator } from './slp';
 import { Utils } from './utils';
 
@@ -31,7 +31,7 @@ export class BitboxNetwork implements SlpValidator {
         this.slp = new Slp(BITBOX);
         this.txnHelpers = new TransactionHelpers(this.slp);
     }
-    
+
     async getTokenInformation(txid: string, decimalConversion=false): Promise<SlpTransactionDetails|any> {
         let res: string[];
         try {
@@ -39,7 +39,7 @@ export class BitboxNetwork implements SlpValidator {
         } catch (e) {
             throw Error(e.error)
         }
-        
+
         if(!Array.isArray(res) || res.length !== 1)
             throw Error("BITBOX response error for 'RawTransactions.getRawTransaction'");
 
@@ -53,7 +53,7 @@ export class BitboxNetwork implements SlpValidator {
                 slpMsg.genesisOrMintQuantity = slpMsg.genesisOrMintQuantity!.dividedBy(10**slpMsg.decimals)
         } else {
             if(decimalConversion)
-                slpMsg.sendOutputs!.map(o => o.dividedBy(10**slpMsg.decimals))
+                slpMsg.sendOutputs!.map((o: any) => o.dividedBy(10**slpMsg.decimals))
         }
         return slpMsg;
     }
@@ -62,9 +62,9 @@ export class BitboxNetwork implements SlpValidator {
     async getTransactionDetails(txid: string, decimalConversion=false) {
         let txn: any = (<TxnDetailsResult[]>await this.BITBOX.Transaction.details([ txid ]))[0];
         // add slp address format to transaction details
-        txn.vin.forEach((input: any) => { 
+        txn.vin.forEach((input: any) => {
             try { input.slpAddress = Utils.toSlpAddress(input.legacyAddress); } catch(_){}});
-        txn.vout.forEach((output: any) => { 
+        txn.vout.forEach((output: any) => {
             try { output.scriptPubKey.slpAddrs = [ Utils.toSlpAddress(output.scriptPubKey.cashAddrs[0]) ] } catch(_){}});
 
         // add token information to transaction details
@@ -96,7 +96,7 @@ export class BitboxNetwork implements SlpValidator {
     async getUtxos(address: string) {
         // must be a cash or legacy addr
         let res: AddressUtxoResult;
-        if(!bchaddr.isCashAddress(address) && !bchaddr.isLegacyAddress(address)) 
+        if(!bchaddr.isCashAddress(address) && !bchaddr.isLegacyAddress(address))
             throw new Error("Not an a valid address format, must be cashAddr or Legacy address format.");
         res = (<AddressUtxoResult[]>await this.BITBOX.Address.utxo([address]))[0];
         return res;
@@ -118,7 +118,7 @@ export class BitboxNetwork implements SlpValidator {
     }
 
     // Sent SLP tokens to a single output address with change handled (Warning: Sweeps all BCH/SLP UTXOs for the funding address)
-    async simpleTokenSend(tokenId: string, sendAmounts: BigNumber|BigNumber[], inputUtxos: SlpAddressUtxoResult[], tokenReceiverAddresses: string|string[], changeReceiverAddress: string, requiredNonTokenOutputs: { satoshis: number, receiverAddress: string }[] = []) {  
+    async simpleTokenSend(tokenId: string, sendAmounts: BigNumber|BigNumber[], inputUtxos: SlpAddressUtxoResult[], tokenReceiverAddresses: string|string[], changeReceiverAddress: string, requiredNonTokenOutputs: { satoshis: number, receiverAddress: string }[] = []) {
         let txHex = this.txnHelpers.simpleTokenSend(tokenId, sendAmounts, inputUtxos, tokenReceiverAddresses, changeReceiverAddress, requiredNonTokenOutputs);
 
         if(!inputUtxos.every(i => typeof i.wif === "string"))
@@ -148,13 +148,13 @@ export class BitboxNetwork implements SlpValidator {
     }
 
     // Sent SLP tokens to a single output address with change handled (Warning: Sweeps all BCH/SLP UTXOs for the funding address)
-    async simpleTokenMint(tokenId: string, mintAmount: BigNumber, inputUtxos: SlpAddressUtxoResult[], tokenReceiverAddress: string, batonReceiverAddress: string, changeReceiverAddress: string) {  
+    async simpleTokenMint(tokenId: string, mintAmount: BigNumber, inputUtxos: SlpAddressUtxoResult[], tokenReceiverAddress: string, batonReceiverAddress: string, changeReceiverAddress: string) {
         let txHex = this.txnHelpers.simpleTokenMint(tokenId, mintAmount, inputUtxos, tokenReceiverAddress, batonReceiverAddress, changeReceiverAddress);
         return await this.sendTx(txHex);
     }
 
     // Burn a precise quantity of SLP tokens with remaining tokens (change) sent to a single output address (Warning: Sweeps all BCH/SLP UTXOs for the funding address)
-    async simpleTokenBurn(tokenId: string, burnAmount: BigNumber, inputUtxos: SlpAddressUtxoResult[], changeReceiverAddress: string) {      
+    async simpleTokenBurn(tokenId: string, burnAmount: BigNumber, inputUtxos: SlpAddressUtxoResult[], changeReceiverAddress: string) {
         let txHex = this.txnHelpers.simpleTokenBurn(tokenId, burnAmount, inputUtxos, changeReceiverAddress);
         return await this.sendTx(txHex);
     }
@@ -174,7 +174,7 @@ export class BitboxNetwork implements SlpValidator {
 
     async getUtxoWithTxDetails(address: string) {
         let utxos = Utils.mapToSlpAddressUtxoResultArray(await this.getUtxoWithRetry(address));
-        let txIds = utxos.map((i: { txid: string; }) => i.txid)    
+        let txIds = utxos.map((i: { txid: string; }) => i.txid)
         if(txIds.length === 0)
             return [];
         // Split txIds into chunks of 20 (BitBox limit), run the detail queries in parallel
@@ -186,7 +186,7 @@ export class BitboxNetwork implements SlpValidator {
         utxos = utxos.map((i: SlpAddressUtxoResult) => { i.tx = txDetails.find((d: TxnDetailsResult) => d.txid === i.txid ); return i;})
         return utxos;
     }
-    
+
     async getTransactionDetailsWithRetry(txids: string[], retries = 40) {
         let result!: TxnDetailsResult[];
         let count = 0;
@@ -203,7 +203,7 @@ export class BitboxNetwork implements SlpValidator {
 
     async getAddressDetailsWithRetry(address: string, retries = 40) {
         // must be a cash or legacy addr
-        if(!bchaddr.isCashAddress(address) && !bchaddr.isLegacyAddress(address)) 
+        if(!bchaddr.isCashAddress(address) && !bchaddr.isLegacyAddress(address))
             throw new Error("Not an a valid address format, must be cashAddr or Legacy address format.");
         let result: AddressDetailsResult[] | undefined;
         let count = 0;
@@ -230,7 +230,7 @@ export class BitboxNetwork implements SlpValidator {
     async monitorForPayment(paymentAddress: string, fee: number, onPaymentCB: Function) {
         let utxo: AddressUtxoResult | undefined;
         // must be a cash or legacy addr
-        if(!bchaddr.isCashAddress(paymentAddress) && !bchaddr.isLegacyAddress(paymentAddress)) 
+        if(!bchaddr.isCashAddress(paymentAddress) && !bchaddr.isLegacyAddress(paymentAddress))
             throw new Error("Not an a valid address format, must be cashAddr or Legacy address format.");
         while (true) {
             try {
@@ -283,7 +283,7 @@ export class BitboxNetwork implements SlpValidator {
         if(this.validator)
             return await this.validator.validateSlpTransactions(txids);
         let validatorUrl = this.setRemoteValidatorUrl();
-        
+
         const promises = _.chunk(txids, 20).map(ids => Axios({
             method: "post",
             url: validatorUrl,

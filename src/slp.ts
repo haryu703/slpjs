@@ -1,4 +1,4 @@
-import { SlpAddressUtxoResult, SlpTransactionDetails, SlpTransactionType, SlpUtxoJudgement, SlpBalancesResult, utxo, SlpVersionType, logger, Primatives } from '../index';
+import { SlpAddressUtxoResult, SlpTransactionDetails, SlpTransactionType, SlpUtxoJudgement, SlpBalancesResult, utxo, SlpVersionType, logger, Primatives } from './index';
 import { SlpTokenType1 } from './slptokentype1';
 import { Utils } from './utils';
 
@@ -8,14 +8,14 @@ import BigNumber from 'bignumber.js';
 
 export interface SlpPaymentRequest {
     address: string,
-    amountBch?: number, 
+    amountBch?: number,
     amountToken?: number,
     tokenId?: string,
     tokenFlags?: string[]
 }
 
 export interface PushDataOperation {
-    opcode: number, 
+    opcode: number,
     data: Buffer|null
 }
 
@@ -43,12 +43,12 @@ export interface configBuildMintOpReturn {
 }
 
 export interface configBuildSendOpReturn {
-    tokenIdHex: string; 
+    tokenIdHex: string;
     outputQtyArray: BigNumber[]
 }
 
 export interface configBuildRawNFT1GenesisTx {
-    slpNFT1GenesisOpReturn: Buffer; 
+    slpNFT1GenesisOpReturn: Buffer;
     mintReceiverAddress: string;
     mintReceiverSatoshis?: BigNumber;
     //batonReceiverAddress: string|null;
@@ -60,7 +60,7 @@ export interface configBuildRawNFT1GenesisTx {
 }
 
 export interface configBuildRawGenesisTx {
-    slpGenesisOpReturn: Buffer; 
+    slpGenesisOpReturn: Buffer;
     mintReceiverAddress: string;
     mintReceiverSatoshis?: BigNumber;
     batonReceiverAddress: string|null;
@@ -125,10 +125,10 @@ export class Slp {
 
     static buildGenesisOpReturn(config: configBuildGenesisOpReturn, type = 0x01) {
         let hash;
-        try { 
+        try {
             hash = config.hash!.toString('hex')
         } catch (_) { hash = null }
-        
+
         return SlpTokenType1.buildGenesisOpReturn(
             config.ticker,
             config.name,
@@ -136,7 +136,7 @@ export class Slp {
             hash,
             config.decimals,
             config.batonVout,
-            config.initialQuantity, 
+            config.initialQuantity,
             type
         )
     }
@@ -145,7 +145,7 @@ export class Slp {
         return SlpTokenType1.buildMintOpReturn(
             config.tokenIdHex,
             config.batonVout,
-            config.mintQuantity, 
+            config.mintQuantity,
             type
         )
     }
@@ -178,14 +178,14 @@ export class Slp {
             config.mintReceiverSatoshis = new BigNumber(546);
 
         if(config.batonReceiverSatoshis === undefined)
-            config.batonReceiverSatoshis = new BigNumber(546); 
+            config.batonReceiverSatoshis = new BigNumber(546);
 
         // Make sure we're not spending any token or baton UTXOs
         config.input_utxos.forEach(txo => {
             if(txo.slpUtxoJudgement === SlpUtxoJudgement.NOT_SLP)
                 return
-            if(config.allowed_token_burning && 
-                txo.slpUtxoJudgement === SlpUtxoJudgement.SLP_TOKEN && 
+            if(config.allowed_token_burning &&
+                txo.slpUtxoJudgement === SlpUtxoJudgement.SLP_TOKEN &&
                 config.allowed_token_burning!.includes(txo.slpTransactionDetails.tokenIdHex)) {
                     return
             }
@@ -247,7 +247,7 @@ export class Slp {
         // sign inputs
         let i = 0;
         for (const txo of config.input_utxos) {
-            let paymentKeyPair = this.BITBOX.ECPair.fromWIF(txo.wif);
+            let paymentKeyPair = this.BITBOX.ECPair.fromWIF(txo.wif!);
             transactionBuilder.sign(i, paymentKeyPair, undefined, transactionBuilder.hashTypes.SIGHASH_ALL, txo.satoshis.toNumber());
             i++;
         }
@@ -255,7 +255,7 @@ export class Slp {
         let tx = transactionBuilder.build().toHex();
 
         // Check For Low Fee
-        let outValue: number = transactionBuilder.transaction.tx.outs.reduce((v: number, o: any)=>v += o.value, 0);
+        let outValue: number = (transactionBuilder.transaction as any).tx.outs.reduce((v: number, o: any)=>v += o.value, 0);
         let inValue: BigNumber = config.input_utxos.reduce((v,i)=>v=v.plus(i.satoshis), new BigNumber(0))
         if(inValue.minus(outValue).isLessThanOrEqualTo(tx.length/2))
             throw Error("Transaction input BCH amount is too low.  Add more BCH inputs to fund this transaction.")
@@ -280,7 +280,7 @@ export class Slp {
         // Parse the SLP SEND OP_RETURN message
 
         const sendMsg = this.parseSlpOutputScript(config.slpSendOpReturn);
-        
+
         // Make sure we're not spending inputs from any other token or baton
 
         let tokenInputQty = new BigNumber(0);
@@ -295,13 +295,13 @@ export class Slp {
             }
             if(txo.slpUtxoJudgement === SlpUtxoJudgement.SLP_BATON)
                 throw Error("Cannot spend a minting baton.")
-            if(txo.slpUtxoJudgement === SlpUtxoJudgement.INVALID_TOKEN_DAG || 
+            if(txo.slpUtxoJudgement === SlpUtxoJudgement.INVALID_TOKEN_DAG ||
                 txo.slpUtxoJudgement === SlpUtxoJudgement.INVALID_BATON_DAG)
                 throw Error("Cannot currently spend UTXOs with invalid DAGs.")
             throw Error("Cannot spend utxo with no SLP judgement.")
         })
 
-        // Make sure the number of output receivers 
+        // Make sure the number of output receivers
         // matches the outputs in the OP_RETURN message.
 
         let chgAddr = config.bchChangeReceiverAddress ? 1 : 0;
@@ -324,7 +324,7 @@ export class Slp {
     //  let locktime = 0;
 
         // Calculate the total input amount & add all inputs to the transaction
-        
+
         let inputSatoshis = config.input_token_utxos.reduce((t, i) => t.plus(i.satoshis), new BigNumber(0));
         config.input_token_utxos.forEach(
             token_utxo => transactionBuilder.addInput(token_utxo.txid, token_utxo.vout)); //, sequence);
@@ -337,14 +337,14 @@ export class Slp {
         // Calculate mining fee cost
 
         let sendCost = this.calculateSendCost(
-                            config.slpSendOpReturn.length, 
-                            config.input_token_utxos.length, 
-                            config.tokenReceiverAddressArray.length + bchOnlyCount, 
+                            config.slpSendOpReturn.length,
+                            config.input_token_utxos.length,
+                            config.tokenReceiverAddressArray.length + bchOnlyCount,
                             config.bchChangeReceiverAddress);
 
         // Compute BCH change amount
 
-        let bchChangeAfterFeeSatoshis = 
+        let bchChangeAfterFeeSatoshis =
             inputSatoshis
                 .minus(sendCost)
                 .minus(bcOnlyOutputSatoshis)
@@ -378,7 +378,7 @@ export class Slp {
             transactionBuilder.addOutput(config.bchChangeReceiverAddress, bchChangeAfterFeeSatoshis.toNumber());
         }
 
-        // Sign txn and add sig to p2pkh input for convenience if wif is provided, 
+        // Sign txn and add sig to p2pkh input for convenience if wif is provided,
         // otherwise skip signing.
 
         let i = 0;
@@ -387,7 +387,7 @@ export class Slp {
             if(txo.wif) {
                 let paymentKeyPair = this.BITBOX.ECPair.fromWIF(txo.wif);
                 transactionBuilder.sign(i, paymentKeyPair, undefined, transactionBuilder.hashTypes.SIGHASH_ALL, txo.satoshis.toNumber());
-            } 
+            }
             else
                 isComplete = false;
             i++;
@@ -402,13 +402,13 @@ export class Slp {
             let tx = transactionBuilder.transaction.buildIncomplete();
         //  tx.locktime = locktime;
             hex = tx.toHex();
-        } 
+        }
         else
             hex = transactionBuilder.build().toHex();
 
         // Check For Low Fee
 
-        let outValue: number = transactionBuilder.transaction.tx.outs.reduce((v: number,o: any)=>v+=o.value, 0);
+        let outValue: number = (transactionBuilder.transaction as any).tx.outs.reduce((v: number,o: any)=>v+=o.value, 0);
         let inValue: BigNumber = config.input_token_utxos.reduce((v,i)=>v=v.plus(i.satoshis), new BigNumber(0))
         if(inValue.minus(outValue).isLessThanOrEqualTo(hex.length/2))
             throw Error("Transaction input BCH amount is too low.  Add more BCH inputs to fund this transaction.");
@@ -424,7 +424,7 @@ export class Slp {
             config.mintReceiverSatoshis = new BigNumber(546);
 
         if(config.batonReceiverSatoshis === undefined)
-            config.batonReceiverSatoshis = new BigNumber(546); 
+            config.batonReceiverSatoshis = new BigNumber(546);
 
         // Check for slp formatted addresses
         if (!bchaddr.isSlpAddress(config.mintReceiverAddress)) {
@@ -492,7 +492,7 @@ export class Slp {
         // sign inputs
         let i = 0;
         for (const txo of config.input_baton_utxos) {
-            let paymentKeyPair = this.BITBOX.ECPair.fromWIF(txo.wif);
+            let paymentKeyPair = this.BITBOX.ECPair.fromWIF(txo.wif!);
             transactionBuilder.sign(i, paymentKeyPair, undefined, transactionBuilder.hashTypes.SIGHASH_ALL, txo.satoshis.toNumber());
             i++;
         }
@@ -500,7 +500,7 @@ export class Slp {
         let tx = transactionBuilder.build().toHex();
 
         // Check For Low Fee
-        let outValue: number = transactionBuilder.transaction.tx.outs.reduce((v: number,o: any)  => v += o.value, 0);
+        let outValue: number = (transactionBuilder.transaction as any).tx.outs.reduce((v: number,o: any)  => v += o.value, 0);
         let inValue: BigNumber = config.input_baton_utxos.reduce((v, i)=> v = v.plus(i.satoshis), new BigNumber(0))
         if(inValue.minus(outValue).isLessThanOrEqualTo(tx.length / 2))
             throw Error("Transaction input BCH amount is too low.  Add more BCH inputs to fund this transaction.")
@@ -517,7 +517,7 @@ export class Slp {
             sendMsg = this.parseSlpOutputScript(config.slpBurnOpReturn);
             if(!sendMsg.sendOutputs)
                 throw Error("OP_RETURN contains no SLP send outputs for token change.");
-    
+
             if(sendMsg.sendOutputs!.length !== 2)
                 throw Error("Burn transaction must have only a single change receiver for token change.");
 
@@ -557,7 +557,7 @@ export class Slp {
             //let chgAddr = config.bchChangeReceiverAddress ? 1 : 0;
             // Make sure token inputs equals token outputs in OP_RETURN
             let outputTokenQty = sendMsg!.sendOutputs!.reduce((v,o) => v=v.plus(o), new BigNumber(0));
-            
+
             if(!tokenInputQty.minus(outputTokenQty).isEqualTo(burnAmount))
                 throw Error("Token burn output quantity must be less than token input quantity.")
         }
@@ -590,7 +590,7 @@ export class Slp {
         // sign inputs
         let i = 0;
         for (const txo of config.input_token_utxos) {
-            let paymentKeyPair = this.BITBOX.ECPair.fromWIF(txo.wif);
+            let paymentKeyPair = this.BITBOX.ECPair.fromWIF(txo.wif!);
             transactionBuilder.sign(i, paymentKeyPair, undefined, transactionBuilder.hashTypes.SIGHASH_ALL, txo.satoshis.toNumber());
             i++;
         }
@@ -598,7 +598,7 @@ export class Slp {
         let tx = transactionBuilder.build().toHex();
 
         // Check For Low Fee
-        let outValue: number = transactionBuilder.transaction.tx.outs.reduce((v: number,o: any) => v+=o.value, 0);
+        let outValue: number = (transactionBuilder.transaction as any).tx.outs.reduce((v: number,o: any) => v+=o.value, 0);
         let inValue: BigNumber = config.input_token_utxos.reduce((v,i) => v=v.plus(i.satoshis), new BigNumber(0))
         if(inValue.minus(outValue).isLessThanOrEqualTo(tx.length/2))
             throw Error("Transaction input BCH amount is too low.  Add more BCH inputs to fund this transaction.")
@@ -651,7 +651,7 @@ export class Slp {
         // sign inputs
         let i = 0;
         for (const txo of config.input_token_utxos) {
-            let paymentKeyPair = this.BITBOX.ECPair.fromWIF(txo.wif);
+            let paymentKeyPair = this.BITBOX.ECPair.fromWIF(txo.wif!);
             transactionBuilder.sign(i, paymentKeyPair, undefined, transactionBuilder.hashTypes.SIGHASH_ALL, txo.satoshis.toNumber());
             i++;
         }
@@ -659,7 +659,7 @@ export class Slp {
         let tx = transactionBuilder.build().toHex();
 
         // Check For Low Fee
-        let outValue: number = transactionBuilder.transaction.tx.outs.reduce((v: number,o: any)=>v+=o.value, 0);
+        let outValue: number = (transactionBuilder.transaction as any).tx.outs.reduce((v: number,o: any)=>v+=o.value, 0);
         let inValue: BigNumber = config.input_token_utxos.reduce((v,i)=>v=v.plus(i.satoshis), new BigNumber(0))
         if(inValue.minus(outValue).isLessThanOrEqualTo(tx.length/2))
             throw Error("Transaction input BCH amount is too low.  Add more BCH inputs to fund this transaction.")
@@ -689,8 +689,8 @@ export class Slp {
         if(!chunks[1])
             throw Error("Bad versionType buffer")
         slpMsg.versionType = <SlpVersionType>Slp.parseChunkToInt(chunks[1]!, 1, 2, true);
-        let supportedTypes = [   
-                SlpVersionType.TokenVersionType1, 
+        let supportedTypes = [
+                SlpVersionType.TokenVersionType1,
                 SlpVersionType.TokenVersionType1_NFT_Parent,
                 SlpVersionType.TokenVersionType1_NFT_Child ];
         if(!supportedTypes.includes(slpMsg.versionType))
@@ -733,7 +733,7 @@ export class Slp {
                 throw Error("Bad Genesis quantity buffer")
             if(chunks[9]!.length !== 8)
                 throw Error("Genesis quantity must be provided as an 8-byte buffer")
-            slpMsg.genesisOrMintQuantity = Utils.buffer2BigNumber(chunks[9]!);                
+            slpMsg.genesisOrMintQuantity = Utils.buffer2BigNumber(chunks[9]!);
             if(slpMsg.versionType === 0x41 && !slpMsg.genesisOrMintQuantity.isEqualTo(1))
                 throw Error("NFT1 child token must have GENESIS quantity of 1.")
         }
@@ -795,7 +795,7 @@ export class Slp {
 
         return slpMsg;
     }
- 
+
     static parseChunkToInt(intBytes: Buffer, minByteLen: number, maxByteLen: number, raise_on_Null = false) {
         // # Parse data as unsigned-big-endian encoded integer.
         // # For empty data different possibilities may occur:
@@ -814,7 +814,7 @@ export class Slp {
         // """Extract pushed bytes after opreturn. Returns list of bytes() objects,
         // one per push.
         let ops: PushDataOperation[];
-    
+
         // Strict refusal of non-push opcodes; bad scripts throw OpreturnError."""
         try {
             ops = this.getScriptOperations(script);
@@ -953,25 +953,25 @@ export class Slp {
                     throw Error("There is at least one input UTXO that is a different SLP token than the one specified.")
                 return txo.slpTransactionDetails.tokenIdHex === tokenId;
             }
-        } 
+        }
         return false;
     }
 
     async processUtxosForSlpAbstract(utxos: SlpAddressUtxoResult[], asyncSlpValidator: SlpValidator) {
-        
+
         // 1) parse SLP OP_RETURN and cast initial SLP judgement, based on OP_RETURN only.
         for(let txo of utxos) {
             this.applyInitialSlpJudgement(txo);
             if(txo.slpUtxoJudgement === SlpUtxoJudgement.UNKNOWN || txo.slpUtxoJudgement === undefined)
                 throw Error('Utxo SLP judgement has not been set, unknown error.');
         }
-    
+
         // 2) Cast final SLP judgement using the supplied async validator
         await this.applyFinalSlpJudgement(asyncSlpValidator, utxos);
-        
+
         // 3) Prepare results object
         const result: SlpBalancesResult = this.computeSlpBalances(utxos);
-    
+
         // 4) Check that all UTXOs have been categorized
         let tokenTxoCount = 0;
         for(let id in result.slpTokenUtxos) tokenTxoCount += result.slpTokenUtxos[id].length;
@@ -979,7 +979,7 @@ export class Slp {
         for(let id in result.slpBatonUtxos) batonTxoCount += result.slpBatonUtxos[id].length;
         if(utxos.length !== (tokenTxoCount + batonTxoCount + result.nonSlpUtxos.length + result.unknownTokenTypeUtxos.length + result.invalidBatonUtxos.length + result.invalidTokenUtxos.length))
             throw Error('Not all UTXOs have been categorized. Unknown Error.');
-    
+
         return result;
     }
 
@@ -997,7 +997,7 @@ export class Slp {
             slpBatonUtxos: {},
             nonSlpUtxos: [],
             invalidTokenUtxos: [],
-            invalidBatonUtxos: [], 
+            invalidBatonUtxos: [],
             unknownTokenTypeUtxos: []
         };
         // 5) Loop through UTXO set and accumulate balances for type of utxo, organize the Utxos into their categories.
@@ -1147,7 +1147,7 @@ export class Slp {
 
         // Loop through utxos to add nftParentId to any NFT1 child UTXO.
         for(let txo in utxos) {
-            if(utxos[txo].slpTransactionDetails && 
+            if(utxos[txo].slpTransactionDetails &&
                 utxos[txo].slpTransactionDetails.versionType === SlpVersionType.TokenVersionType1_NFT_Child) {
                 if(utxos[txo].slpTransactionDetails.transactionType !== SlpTransactionType.GENESIS) {
                     utxos[txo].nftParentId = await getNftParentId(utxos[txo].slpTransactionDetails.tokenIdHex);
